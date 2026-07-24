@@ -90,23 +90,46 @@ def _cookie_changed(
 class _FileLock:
     def __init__(self, fh):
         self._fh = fh
+        self._backend = None
 
     def __enter__(self):
         try:
             import fcntl
 
             fcntl.flock(self._fh.fileno(), fcntl.LOCK_EX)
+            self._backend = "fcntl"
         except Exception:
-            pass
+            try:
+                import msvcrt
+
+                self._fh.seek(0)
+                if not self._fh.read(1):
+                    self._fh.seek(0)
+                    self._fh.write("\0")
+                    self._fh.flush()
+                self._fh.seek(0)
+                msvcrt.locking(self._fh.fileno(), msvcrt.LK_LOCK, 1)
+                self._backend = "msvcrt"
+            except Exception:
+                self._backend = None
         return self
 
     def __exit__(self, exc_type, exc, tb):
-        try:
-            import fcntl
+        if self._backend == "fcntl":
+            try:
+                import fcntl
 
-            fcntl.flock(self._fh.fileno(), fcntl.LOCK_UN)
-        except Exception:
-            pass
+                fcntl.flock(self._fh.fileno(), fcntl.LOCK_UN)
+            except Exception:
+                pass
+        elif self._backend == "msvcrt":
+            try:
+                import msvcrt
+
+                self._fh.seek(0)
+                msvcrt.locking(self._fh.fileno(), msvcrt.LK_UNLCK, 1)
+            except Exception:
+                pass
         return False
 
 
@@ -188,7 +211,9 @@ class FailureGuard:
 
     def _update_task(self, task_key: str, updater) -> dict:
         _ensure_parent_dir(self.path)
-        with open(self.path, "a+", encoding="utf-8") as fh:
+        # Lock a sibling file so Windows can atomically replace the JSON target.
+        # Windows rejects os.replace() while the destination itself is open.
+        with open(f"{self.path}.lock", "a+", encoding="utf-8") as fh:
             with _FileLock(fh):
                 fh.seek(0)
                 data = self._load()
