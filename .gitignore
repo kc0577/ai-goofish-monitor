@@ -2,6 +2,7 @@
 *.iml
 xianyu_state.json
 .env
+.venv/
 .aider*
 images/
 logs/

@@ -11,11 +11,8 @@ from urllib.parse import urlencode, urlparse, urlunparse, parse_qsl
 
 import requests
 
-# 设置标准输出编码为UTF-8，解决Windows控制台编码问题
-if sys.platform.startswith('win'):
-    import codecs
-    sys.stdout = codecs.getwriter('utf-8')(sys.stdout.detach())
-    sys.stderr = codecs.getwriter('utf-8')(sys.stderr.detach())
+# 保留 Python 为当前 Windows 终端选择的编码。强制 detach/reconfigure
+# 会破坏 pytest 捕获，或让 GBK 终端把 UTF-8 输出显示为乱码。
 
 from src.config import (
     AI_DEBUG_MODE,
