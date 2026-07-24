@@ -23,12 +23,14 @@
 
 1. 将 `.env.safe-observation.example` 复制为 `.env`，替换 Web 密码。
 2. 将 `config.safe-observation.example.json` 复制为 `config.json`。
-3. 使用仓库内经审计的 Chrome 扩展导出登录状态，保存为 `state/acc_1.json`。
+3. 运行下方登录采集器，在可见的 Edge 窗口中由本人扫码或使用本人手机号登录。脚本检测成功后只在本机保存 `state/acc_1.json`，不会打印 Cookie。
 4. 首轮只运行一个任务，并设置 `--debug-limit 3`。
 
 示例：
 
 ```powershell
+.venv\Scripts\python.exe scripts\capture_xianyu_login.py --output state\acc_1.json
+
 .venv\Scripts\python.exe spider_v2.py --config config.json --task-name "Kindle Paperwhite 5 观察" --debug-limit 3
 ```
 
